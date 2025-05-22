@@ -1,1 +1,0 @@
-worker: python github_copilot_reviewer.py
