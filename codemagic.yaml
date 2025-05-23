@@ -1,0 +1,28 @@
+workflows:
+  pr-slack-bot-ci:
+    name: PR Slack Bot CI
+    max_build_duration: 10
+    environment:
+      groups:
+        - env
+      vars:
+        SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+        GITHUB_REPOS: ${GITHUB_REPOS}
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+    scripts:
+      - name: Set up virtual environment
+        script: |
+          python3 -m venv venv
+          . venv/bin/activate
+      - name: Install dependencies
+        script: |
+          pip install -r requirements.txt
+      - name: Run main script
+        script: |
+          python3 main.py
