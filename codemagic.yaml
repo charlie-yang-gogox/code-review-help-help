@@ -1,0 +1,27 @@
+workflows:
+  pr-slack-bot-ci:
+    name: PR Slack Bot CI
+    max_build_duration: 10
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+    scripts:
+      - name: Set up virtual environment
+        script: |
+          python3 -m venv venv
+          . venv/bin/activate
+      - name: Install dependencies
+        script: |
+          pip install -r requirements.txt
+      - name: Run formatting check (black)
+        script: |
+          pip install black
+          black . --check
+      - name: Run linter (ruff)
+        script: |
+          pip install ruff
+          ruff .
