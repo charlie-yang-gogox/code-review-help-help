@@ -1,26 +1,77 @@
-import os
 import requests
 import logging
 import time
-from typing import List, Dict
+import json
+from typing import List, Dict, Tuple
 
 class GithubManager:
-    def __init__(self):
-        self.github_token = os.getenv('GITHUB_TOKEN')
-        if not self.github_token:
-            raise ValueError("GitHub token not found in environment variables")
+    def __init__(self, github_token: str, repos_str: str):
+        if not github_token:
+            raise ValueError("GitHub token is required")
         
         self.headers = {
-            'Authorization': f'token {self.github_token}',
+            'Authorization': f'token {github_token}',
             'Accept': 'application/vnd.github.v3+json'
         }
-        # Authorization header
-        logging.debug(f"Authorization header: {self.headers['Authorization']}")
         
         self.base_url = 'https://api.github.com'
         self.max_retries = 3
         self.retry_delay = 5  # seconds
         
+        # Parse repositories
+        self.repos = self._parse_repos(repos_str)
+        if not self.repos:
+            raise ValueError("No valid repositories found in GITHUB_REPOS")
+    
+    def _parse_repos(self, repos_str: str) -> List[Tuple[str, str, str]]:
+        """Parse repositories from environment variable"""
+        if not repos_str:
+            logging.error("repos_str is empty")
+            return []
+            
+        # Clean the string
+        repos_str = repos_str.strip()
+        
+        try:
+            # Try parsing as JSON first
+            # Remove any potential BOM or special characters
+            repos_str = repos_str.encode('utf-8').decode('utf-8-sig')
+            repos = json.loads(repos_str)
+            
+            if isinstance(repos, list):
+                # Format: [{"owner": "user1", "repo": "repo1", "icon": "icon"}, {"owner": "user2", "repo": "repo2", "icon": "icon"}]
+                result = []
+                for r in repos:
+                    if not isinstance(r, dict):
+                        logging.error(f"Invalid repository format: {r}")
+                        continue
+                    if not all(k in r for k in ['owner', 'repo', 'icon']):
+                        logging.error(f"Missing required fields in repository: {r}")
+                        continue
+                    result.append((r['owner'], r['repo'], r['icon']))
+                return result
+            else:
+                logging.error(f"Expected list but got {type(repos)}")
+                return []
+                
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse as JSON: {str(e)}")
+            # Try parsing as comma-separated string
+            # Format: "user1/repo1,user2/repo2"
+            repos = []
+            for repo_str in repos_str.split(','):
+                if '/' in repo_str:
+                    try:
+                        owner, repo, icon = repo_str.strip().split('/')
+                        repos.append((owner, repo, icon))
+                    except ValueError:
+                        logging.error(f"Invalid repository format: {repo_str}")
+                        continue
+            return repos
+        
+        logging.error("Failed to parse repositories in any format")
+        return []
+    
     def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Make HTTP request with retry mechanism"""
         for attempt in range(self.max_retries):

@@ -1,4 +1,3 @@
-import os
 import requests
 import logging
 from typing import List, Dict
@@ -16,10 +15,10 @@ def get_review_status_emoji(state: str) -> str:
     return status_map.get(state, ':white_circle:')
 
 class SlackNotifier:
-    def __init__(self):
-        self.webhook_url = os.getenv('SLACK_WEBHOOK_URL')
-        if not self.webhook_url:
-            raise ValueError("Slack Webhook URL not found in environment variables")
+    def __init__(self, webhook_url: str):
+        if not webhook_url:
+            raise ValueError("Slack Webhook URL is required")
+        self.webhook_url = webhook_url
     
     def _format_reviewers(self, requested_reviewers: List[Dict], reviewer_status: Dict[str, Dict]) -> str:
         """Format reviewers list with their review status"""

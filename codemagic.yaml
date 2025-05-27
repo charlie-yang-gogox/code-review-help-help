@@ -5,9 +5,6 @@ workflows:
     environment:
       groups:
         - env
-      vars:
-        SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
-        GITHUB_REPOS: ${GITHUB_REPOS}
     triggering:
       events:
         - push
