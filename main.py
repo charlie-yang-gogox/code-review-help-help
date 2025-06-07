@@ -42,9 +42,6 @@ def main():
                 # Get all open pull requests for this repo
                 pull_requests = github.get_pull_requests(owner, repo)
                 
-                for pr in pull_requests:
-                    all_prs.append((owner, repo, pr, icon))
-                
                 # Log to console
                 for pr in pull_requests:
                     pr_number = pr['number']
@@ -65,8 +62,24 @@ def main():
                     labels = [label['name'] for label in pr.get('labels', [])]
                     
                     logging.info(f"Labels: {', '.join(labels) if labels else 'No labels'}")
+
+                    # Skip PRs with WIP label or no reviewers
+                    is_wip = 'WIP' in labels
+                    has_no_reviewers = not requested_reviewers
+
+                    if is_wip or has_no_reviewers:
+                        reason = []
+                        if is_wip:
+                            reason.append("WIP")
+                        if has_no_reviewers:
+                            reason.append("no reviewers")
+                        logging.info(f"Skipping PR: {pr_title} - Reason: {', '.join(reason)}")
+                        logging.info("-" * 80)
+                        continue
+
                     logging.info("-" * 80)
-                
+                    all_prs.append((owner, repo, pr, icon))
+
             except Exception as e:
                 logging.error(f"Error processing repository {owner}/{repo}: {str(e)}")
                 continue
